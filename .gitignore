@@ -1,0 +1,5 @@
+docker-compose.yml
+src/storage/*
+.env
+__pycache__
+.venv
