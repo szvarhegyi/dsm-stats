@@ -6,6 +6,8 @@ from pysnmp.hlapi.v3arch.asyncio import *
 import asyncio
 import json
 import time
+import datetime
+
 
 app = FastAPI()
 load_dotenv()
@@ -34,6 +36,7 @@ def get_sid():
     }
     r = requests.get(url, params=params, verify=False)
     r.raise_for_status()
+    
     return r.json()["data"]["sid"]
 
 def get_system_temp(sid):
@@ -47,6 +50,7 @@ def get_system_temp(sid):
     r = requests.post(url, data=payload, verify=False)
     r.raise_for_status()
     body = r.json()
+
     return body.get('data', {}).get('sys_temp', 0)
 
 async def get_disk_temps(ipaddress, username, passwd):
@@ -89,13 +93,17 @@ async def get_disk_temps(ipaddress, username, passwd):
     for index, info in disk_data.items():
         temps[f'disk{index}'] = info.get('temperature', 'Unknown')
 
+    temps['alldata'] = disk_data
+    
     return temps
 
 
 def send_data():
     result = asyncio.run(get_disk_temps(SNMP_HOST, SNMP_USERNAME, SNMP_PASSWORD))
+    x = datetime.datetime.now()
     result['cpu'] = get_system_temp(get_sid())
-
+    result['date'] = x.strftime("%Y-%m-%d %H:%M:%S")
+    
     url = "https://jsonbin.e-complex.hu/bins/" + JSON_SECRET
 
     payload = json.dumps(result)
