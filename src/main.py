@@ -7,6 +7,7 @@ import asyncio
 import json
 import time
 import datetime
+from zoneinfo import ZoneInfo
 
 
 app = FastAPI()
@@ -22,6 +23,14 @@ SNMP_PASSWORD = os.getenv('SNMP_PASSWORD')
 
 JSON_SECRET = os.getenv('JSON_SECRET')
 SLEEP_TIME = int(os.getenv('SLEEP_TIME', 60))
+
+JSONBIN_SERVER = os.getenv('JSONBIN_SERVER')
+
+INFLUX_ENABLED = os.getenv('INFLUX_ENABLED', False)
+INFLUX_URL = os.getenv('INFLUX_URL')
+INFLUX_TOKEN = os.getenv('INFLUX_TOKEN')
+INFLUX_ORG = os.getenv('INFLUX_ORG')
+INFLUX_BUCKET = os.getenv('INFLUX_BUCKET')
 
 def get_sid():
     url = f"{DSM_HOST}/webapi/auth.cgi"
@@ -97,14 +106,31 @@ async def get_disk_temps(ipaddress, username, passwd):
     
     return temps
 
+def send_data_to_influxdb(result):
+    lines = []
+    for key,value in result.items():
+        if(key not in ['alldata', 'date']):
+            lines.append(
+                f"nas_temps,host=nas1,type={key} value={value}i {int(datetime.datetime.now(ZoneInfo('Europe/Budapest')).timestamp()*1e9)}"
+            )
+    payload = "\n".join(lines)
+    
+    resp = requests.post(
+        f"{INFLUX_URL}/api/v2/write?org={INFLUX_ORG}&bucket={INFLUX_BUCKET}&precision=ns",
+        headers={
+            "Authorization": f"Token {INFLUX_TOKEN}",
+            "Content-Type": "text/plain"
+        },
+        data=payload
+    )
 
 def send_data():
     result = asyncio.run(get_disk_temps(SNMP_HOST, SNMP_USERNAME, SNMP_PASSWORD))
-    x = datetime.datetime.now()
+    x = datetime.datetime.now(ZoneInfo("Europe/Budapest"))
     result['cpu'] = get_system_temp(get_sid())
     result['date'] = x.strftime("%Y-%m-%d %H:%M:%S")
     
-    url = "https://jsonbin.e-complex.hu/bins/" + JSON_SECRET
+    url = JSONBIN_SERVER + "/bins/" + JSON_SECRET
 
     payload = json.dumps(result)
 
@@ -112,6 +138,9 @@ def send_data():
     'Content-Type': 'application/json'
     }
 
+    if(INFLUX_ENABLED):
+        send_data_to_influxdb(result)
+    
     response = requests.request("POST", url, headers=headers, data=payload)
 
 if __name__ == "__main__":
