@@ -26,7 +26,7 @@ SLEEP_TIME = int(os.getenv('SLEEP_TIME', 60))
 
 JSONBIN_SERVER = os.getenv('JSONBIN_SERVER')
 
-if(os.getenv('INFLUX_ENABLED') == 'true' or os.getenv('INFLUX_ENABLED') == 'True')
+if(os.getenv('INFLUX_ENABLED') == 'true' or os.getenv('INFLUX_ENABLED') == 'True'):
     INFLUX_ENABLED = True
 else:
     INFLUX_ENABLED = False
@@ -149,6 +149,5 @@ def send_data():
 
 if __name__ == "__main__":
     while True:
-        print("send data")
         send_data()
         time.sleep(SLEEP_TIME)
