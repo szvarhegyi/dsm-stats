@@ -26,7 +26,11 @@ SLEEP_TIME = int(os.getenv('SLEEP_TIME', 60))
 
 JSONBIN_SERVER = os.getenv('JSONBIN_SERVER')
 
-INFLUX_ENABLED = os.getenv('INFLUX_ENABLED', False)
+if(os.getenv('INFLUX_ENABLED') == 'true' or os.getenv('INFLUX_ENABLED') == 'True')
+    INFLUX_ENABLED = True
+else:
+    INFLUX_ENABLED = False
+    
 INFLUX_URL = os.getenv('INFLUX_URL')
 INFLUX_TOKEN = os.getenv('INFLUX_TOKEN')
 INFLUX_ORG = os.getenv('INFLUX_ORG')
